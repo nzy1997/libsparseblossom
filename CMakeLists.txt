@@ -29,15 +29,26 @@ endif()
 # ============================================================================
 
 # 查找 JlCxx (CxxWrap.jl 的 C++ 接口)
-# 在 BinaryBuilder 环境中，我们需要手动设置 Julia 版本来避免 FindJulia.cmake 失败
+# 在 BinaryBuilder 环境中，FindJulia.cmake 会失败，所以我们手动创建目标
 if(CMAKE_CROSSCOMPILING)
-    set(Julia_VERSION_MAJOR 1)
-    set(Julia_VERSION_MINOR 6)
-    set(Julia_VERSION_PATCH 0)
+    message(STATUS "Cross-compiling detected, manually setting up JlCxx")
+    # 查找 cxxwrap_julia 库
+    find_library(CXXWRAP_JULIA_LIB cxxwrap_julia REQUIRED)
+    find_path(CXXWRAP_JULIA_INCLUDE jlcxx/jlcxx.hpp REQUIRED)
+    
+    # 创建导入目标
+    add_library(JlCxx::cxxwrap_julia SHARED IMPORTED)
+    set_target_properties(JlCxx::cxxwrap_julia PROPERTIES
+        IMPORTED_LOCATION "${CXXWRAP_JULIA_LIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "${CXXWRAP_JULIA_INCLUDE}"
+    )
+    message(STATUS "JlCxx library: ${CXXWRAP_JULIA_LIB}")
+    message(STATUS "JlCxx include: ${CXXWRAP_JULIA_INCLUDE}")
+else()
+    # 本地编译时使用正常的 find_package
+    find_package(JlCxx REQUIRED)
+    message(STATUS "Found JlCxx: ${JlCxx_DIR}")
 endif()
-
-find_package(JlCxx REQUIRED)
-message(STATUS "Found JlCxx: ${JlCxx_DIR}")
 
 # ============================================================================
 # 获取 Stim 依赖 (通过 FetchContent)
