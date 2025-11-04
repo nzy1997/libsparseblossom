@@ -70,6 +70,30 @@ else()
     target_compile_options(libstim PRIVATE -fPIC ${ARCH_OPT})
 endif()
 
+# 为 BinaryBuilder 环境添加 C++20 bit 函数的workaround
+# 某些工具链的 libc++ 可能不完全支持 std::popcount 等函数
+# 我们通过添加编译器标志来提供polyfill
+if(CMAKE_CROSSCOMPILING)
+    # 创建一个包装头文件来提供缺失的 std 函数
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/bit_compat.h" "
+#ifndef BIT_COMPAT_H
+#define BIT_COMPAT_H
+#include <bit>
+namespace std {
+    template<typename T>
+    inline constexpr int popcount(T x) noexcept {
+        return __builtin_popcountll(static_cast<unsigned long long>(x));
+    }
+    template<typename T>
+    inline constexpr int countr_zero(T x) noexcept {
+        return __builtin_ctzll(static_cast<unsigned long long>(x));
+    }
+}
+#endif
+")
+    target_compile_options(libstim PRIVATE -include "${CMAKE_CURRENT_BINARY_DIR}/bit_compat.h")
+endif()
+
 # ============================================================================
 # 源文件列表
 # ============================================================================
