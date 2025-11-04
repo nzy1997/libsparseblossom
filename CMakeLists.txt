@@ -29,6 +29,13 @@ endif()
 # ============================================================================
 
 # 查找 JlCxx (CxxWrap.jl 的 C++ 接口)
+# 在 BinaryBuilder 环境中，我们需要手动设置 Julia 版本来避免 FindJulia.cmake 失败
+if(CMAKE_CROSSCOMPILING)
+    set(Julia_VERSION_MAJOR 1)
+    set(Julia_VERSION_MINOR 6)
+    set(Julia_VERSION_PATCH 0)
+endif()
+
 find_package(JlCxx REQUIRED)
 message(STATUS "Found JlCxx: ${JlCxx_DIR}")
 
