@@ -79,14 +79,46 @@ if(CMAKE_CROSSCOMPILING)
 #ifndef BIT_COMPAT_H
 #define BIT_COMPAT_H
 #include <bit>
+#include <cstdint>
+#include <type_traits>
+
 namespace std {
+    // popcount - 计算置位的bit数量
     template<typename T>
     inline constexpr int popcount(T x) noexcept {
-        return __builtin_popcountll(static_cast<unsigned long long>(x));
+        if constexpr (sizeof(T) <= sizeof(unsigned int)) {
+            return __builtin_popcount(static_cast<unsigned int>(x));
+        } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
+            return __builtin_popcountl(static_cast<unsigned long>(x));
+        } else {
+            return __builtin_popcountll(static_cast<unsigned long long>(x));
+        }
     }
+    
+    // countr_zero - 从右侧（低位）开始计算连续的0的数量
     template<typename T>
     inline constexpr int countr_zero(T x) noexcept {
-        return __builtin_ctzll(static_cast<unsigned long long>(x));
+        if (x == 0) return sizeof(T) * 8;
+        if constexpr (sizeof(T) <= sizeof(unsigned int)) {
+            return __builtin_ctz(static_cast<unsigned int>(x));
+        } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
+            return __builtin_ctzl(static_cast<unsigned long>(x));
+        } else {
+            return __builtin_ctzll(static_cast<unsigned long long>(x));
+        }
+    }
+    
+    // countl_zero - 从左侧（高位）开始计算连续的0的数量
+    template<typename T>
+    inline constexpr int countl_zero(T x) noexcept {
+        if (x == 0) return sizeof(T) * 8;
+        if constexpr (sizeof(T) <= sizeof(unsigned int)) {
+            return __builtin_clz(static_cast<unsigned int>(x)) - (sizeof(unsigned int) * 8 - sizeof(T) * 8);
+        } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
+            return __builtin_clzl(static_cast<unsigned long>(x)) - (sizeof(unsigned long) * 8 - sizeof(T) * 8);
+        } else {
+            return __builtin_clzll(static_cast<unsigned long long>(x)) - (sizeof(unsigned long long) * 8 - sizeof(T) * 8);
+        }
     }
 }
 #endif
