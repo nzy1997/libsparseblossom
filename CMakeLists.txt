@@ -74,7 +74,23 @@ endif()
 # 某些工具链的 libc++ 可能不完全支持 std::popcount 等函数
 # 我们通过添加编译器标志来提供polyfill
 if(CMAKE_CROSSCOMPILING)
-    # 创建一个包装头文件来提供缺失的 std 函数
+    # 修补Stim源码以使用C++17兼容的代码
+    # 将 .contains( 替换为 .count(，因为count在C++17中可用且对于存在性检查等效
+    execute_process(
+        COMMAND find ${CMAKE_CURRENT_BINARY_DIR}/_deps/stim-src -type f -name "*.cc" -o -name "*.h"
+        OUTPUT_VARIABLE STIM_FILES
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    string(REPLACE "\\n" ";" STIM_FILES_LIST "${STIM_FILES}")
+    foreach(file ${STIM_FILES_LIST})
+        if(EXISTS "${file}")
+            execute_process(
+                COMMAND sed -i.bak -e "s/\\.contains(/.count(/g" "${file}"
+            )
+        endif()
+    endforeach()
+    
+    # 创建一个包装头文件来提供缺失的 std bit 函数
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/bit_compat.h" "
 #ifndef BIT_COMPAT_H
 #define BIT_COMPAT_H
